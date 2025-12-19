@@ -78,74 +78,74 @@ async def on_ready():
 async def help(ctx):
     await ctx.send(
         "**Commands:**\n"
-        "`!save <name> <target YouTube url>` – Save a link\n"
-        "`!rename <old name> <new name>` – Rename a saved link\n"
-        "`!delete <name>` – Delete a saved link\n"
-        "`!list <fragment>` – List all saved audio matching fragment (optional)\n"
-        "`!play <name>` – Play saved audio\n"
-        "`!loop <name>` – Loop audio until stopped\n"
+        "`!save <alias> <target YouTube url>` – Save a link\n"
+        "`!rename <old alias> <new alias>` – Rename a saved link\n"
+        "`!delete <alias>` – Delete a saved link\n"
+        "`!list [partial alias]` – List all saved audio matching provided partial alias (optional)\n"
+        "`!play <alias>` – Play saved audio\n"
+        "`!loop <alias>` – Loop audio until stopped\n"
         "`!stop` – Stop playback"
     )
 
 @bot.command()
-async def save(ctx, name: str, url: str):
+async def save(ctx, alias: str, url: str):
     data = load_audio_map()
     gid = str(ctx.guild.id)
 
-    data.setdefault(gid, {})[name] = url
+    data.setdefault(gid, {})[alias] = url
     save_audio_map(data)
 
-    await ctx.send(f"Saved `{name}`.")
+    await ctx.send(f"Saved `{alias}`.")
 
 
 @bot.command()
-async def rename(ctx, old_name: str, new_name: str):
+async def rename(ctx, old_alias: str, new_alias: str):
     data = load_audio_map()
     gid = str(ctx.guild.id)
 
-    if gid not in data or old_name not in data[gid]:
-        await ctx.send(f"Audio `{old_name}` not found.")
+    if gid not in data or old_alias not in data[gid]:
+        await ctx.send(f"Audio `{old_alias}` not found.")
         return
 
-    if new_name in data[gid]:
-        await ctx.send(f"Audio `{new_name}` already exists.")
+    if new_alias in data[gid]:
+        await ctx.send(f"Audio `{new_alias}` already exists.")
         return
 
-    data[gid][new_name] = data[gid].pop(old_name)
+    data[gid][new_alias] = data[gid].pop(old_alias)
     save_audio_map(data)
 
-    await ctx.send(f"Renamed `{old_name}` to `{new_name}`.")
+    await ctx.send(f"Renamed `{old_alias}` to `{new_alias}`.")
 
 
 @bot.command()
-async def delete(ctx, name: str):
+async def delete(ctx, alias: str):
     data = load_audio_map()
     gid = str(ctx.guild.id)
 
-    if gid not in data or name not in data[gid]:
-        await ctx.send("Audio name not found.")
+    if gid not in data or alias not in data[gid]:
+        await ctx.send("Audio alias not found.")
         return
 
-    del data[gid][name]
+    del data[gid][alias]
     save_audio_map(data)
 
-    await ctx.send(f"Deleted `{name}`.")
+    await ctx.send(f"Deleted `{alias}`.")
 
 
 @bot.command()
-async def play(ctx, name: str):
+async def play(ctx, alias: str):
     data = load_audio_map()
     gid = str(ctx.guild.id)
 
-    if gid not in data or name not in data[gid]:
-        await ctx.send("Audio name not found.")
+    if gid not in data or alias not in data[gid]:
+        await ctx.send("Audio alias not found.")
         return
 
     vc = await ensure_voice(ctx)
     if not vc:
         return
 
-    stream_url = await get_stream_url(data[gid][name])
+    stream_url = await get_stream_url(data[gid][alias])
 
     audio = discord.FFmpegPCMAudio(
         stream_url,
@@ -162,19 +162,19 @@ async def play(ctx, name: str):
 
 
 @bot.command()
-async def loop(ctx, name: str):
+async def loop(ctx, alias: str):
     data = load_audio_map()
     gid = str(ctx.guild.id)
 
-    if gid not in data or name not in data[gid]:
-        await ctx.send("Audio name not found.")
+    if gid not in data or alias not in data[gid]:
+        await ctx.send("Audio alias not found.")
         return
 
     vc = await ensure_voice(ctx)
     if not vc:
         return
 
-    stream_url = await get_stream_url(data[gid][name])
+    stream_url = await get_stream_url(data[gid][alias])
     looping[gid] = True
 
     def loop_audio(err=None):
@@ -191,7 +191,6 @@ async def loop(ctx, name: str):
     loop_audio()
 
 
-
 @bot.command()
 async def stop(ctx):
     gid = str(ctx.guild.id)
@@ -202,24 +201,23 @@ async def stop(ctx):
         await ctx.voice_client.disconnect()
 
 
-
 @bot.command(name="list")
-async def list_audio(ctx, fragment: str = None):
+async def list_audio(ctx, partial_alias: str = None):
     data = load_audio_map()
     gid = str(ctx.guild.id)
     if gid not in data or not data[gid]:
         await ctx.send("No audio saved for this server.")
         return
 
-    names = data[gid].keys()
-    if fragment:
-        fragment = fragment.lower()
-        names = [name for name in names if fragment in name.lower()]
+    aliases = data[gid].keys()
+    if partial_alias:
+        partial_alias = partial_alias.lower()
+        aliases = [alias for alias in aliases if partial_alias in alias.lower()]
     else:
-        names = list(names)
+        aliases = list(aliases)
 
-    sorted_names = sorted(names, key=str.lower)
-    await ctx.send("Saved audio names:\n" + "\n".join(sorted_names))
+    sorted_aliases = sorted(aliases, key=str.lower)
+    await ctx.send("Saved audio:\n" + "\n".join(sorted_aliases))
 
 
 # --- Main ---
