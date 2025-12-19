@@ -1,0 +1,4 @@
+Echo/.env
+*.json
+.vs/
+*.sln
